@@ -11,7 +11,7 @@ The clinical data were derived from Harrogate and District NHS Foundation Trust,
 ## Requirements 
 This project requires the following Python packages: 
 - Pandas 
+- Scikit-learn
 - Missingno
-- 
 
 ## File columns: 
