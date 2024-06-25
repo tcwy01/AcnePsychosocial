@@ -13,5 +13,3 @@ This project requires the following Python packages:
 - Pandas 
 - Scikit-learn
 - Missingno
-
-## File columns: 
