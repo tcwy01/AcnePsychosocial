@@ -1,39 +1,15 @@
 *Loading in data
 clear all
-use "Z:\acne_psychosocial.dta"
+use "Z:\acne_psychosocial_v3.dta"
 
 *Recoding sex binary feature (0=female,1=male)
 recode Sex (2=0)
 tabulate Sex
-save "Z:\acne_psychosocial.dta", replace
+save "Z:\acne_psychosocial_v3.dta", replace
 
-**Descriptive stats and exploring data 
-*Inspecting present age and age of onset
-describe A
-sum
-tab Age
-hist ONSET
-
-*Two-way histogram of present age and age of onset 
-twoway (histogram Age, color(red%50) lcolor(none) bin(30)) ///
-	   (histogram ONSET, color(green%50) lcolor(none) bin(30)), ///
-	   legend(label(1 "Age at PHQ9 scoring") label(2 "Age of acne onset")) ///
-	   ytitle("Density") xtitle("Years")
-	   
-*Correlation matrix of PHQ9 results and demographic characteristics
-spearman ResultsPHQ9 Age Sex smoke cigarettes Alcohol New_where_does_the_pt_live New_if_pt_lives_in_urban_environ BMI Socioeconomic_status
-
-*Ensuring only unique patient IDs are included
-duplicates drop ID, force
-*Dropping patient ID variable   
-drop ID
-sum
-
-**Multiple imputation
-*Set imputation to wide format
-mi set wide
-*Set random seed 
-set seed 2024
+*Labelling variables 
+label variable ResultsPHQ9 "PHQ-9 score shortly after starting clinic"
+label variable ONSET "age of acne onset"
 
 *Renaming variables with long names
 rename New_where_does_the_pt_live pt_location
@@ -49,11 +25,91 @@ replace MildSeverity = 0 if missing(MildSeverity)
 replace ModerateSeverity = 0 if missing(ModerateSeverity)
 replace FamilyDepression = 0 if missing(FamilyDepression)
 
+*Inspecting missingness 
+egen miss_count = rowmiss(*)
+
+*Inspecting variables for out-of-place values (e.g. 0.0001 cigarettes smoked)
+tab cigarettes
+tab ONSET 
+tab Duration 
+tab NurseBackLeedsGrade 
+tab NurseLeedsGradeChestWhole 
+tab CombinedAcneScore
+tab ScarringSeverityFace
+tab pt_location 
+tab pt_urban_loc
+tab WellBeingScale
+tab New_Level_of_stress
+tab Results_Had
+tab BMI
+tab PHQ9_1
+tab PHQ9_2
+tab PHQ9_3
+tab PHQ9_4
+tab PHQ9_5
+tab PHQ9_6
+tab PHQ9_7
+tab PHQ9_8
+tab PHQ9_9
+tab HAD_I_Feel_Tense
+tab HAD_I_Still_Enjoy
+tab HAD_I_Frightened_Feeling
+tab HAD_I_Can_Laugh
+tab HAD_Worrying_Thoughts
+tab HAD_I_Feel_Cheerful
+tab HAD_I_Can_Sit_Relaxed
+tab HAD_I_Feel_Slowed_Down
+tab HAD_I_Have_Lost
+tab HAD_I_Feel_restless
+tab HAD_I_look_forward
+tab HAD_I_Get_sudden_panic
+tab HAD_I_Enjoy_a_good_book
+
+*Fixing out-of-place values 
+replace cigarettes = . if cigarettes == 0.00001
+replace WellBeingScale = . if WellBeingScale == 6.5
+replace New_Level_of_stress = . if New_Level_of_stress > 10
+
+local varlist PHQ9_1 PHQ9_2 PHQ9_3 PHQ9_4 PHQ9_5 PHQ9_6 PHQ9_7 PHQ9_8 PHQ9_9 HAD_I_Feel_Tense HAD_I_Still_Enjoy HAD_I_Frightened_Feeling HAD_I_Can_Laugh HAD_Worrying_Thoughts HAD_I_Feel_Cheerful HAD_I_Can_Sit_Relaxed HAD_I_Feel_Slowed_Down HAD_I_Have_Lost HAD_I_Feel_restless HAD_I_look_forward HAD_I_Get_sudden_panic HAD_I_Enjoy_a_good_book
+
+foreach var of local varlist{
+	replace var = . if var > 4
+}
+tab HAD_I_Get_sudden_panic
+
+**Descriptive stats and exploring data 
+*Inspecting present age and age of onset
+sum Sex
+sum
+tab Age
+hist ONSET
+
+*Two-way histogram of present age and age of onset 
+twoway (histogram Age, color(red%50) lcolor(none) bin(30)) ///
+	   (histogram ONSET, color(green%50) lcolor(none) bin(30)), ///
+	   legend(label(1 "Age at PHQ9 scoring") label(2 "Age of acne onset")) ///
+	   ytitle("Density") xtitle("Years")
+	   
+*Correlation matrix of PHQ9 results and demographic characteristics
+spearman ResultsPHQ9 Age ONSET Sex smoke cigarettes Alcohol New_where_does_the_pt_live New_if_pt_lives_in_urban_environ BMI Socioeconomic_status
+
+*Ensuring only unique patient IDs are included
+duplicates drop ID, force
+*Dropping patient ID variable   
+drop ID
+sum
+
+**Multiple imputation
+*Set imputation to wide format
+mi set wide
+*Set random seed 
+set seed 2024
+
 *Registering variables for imputation
 mi register imputed Age Sex smoke cigarettes Alcohol ONSET Duration persistent  NurseLeedsGradeFaceWhole NurseBackLeedsGrade NurseLeedsGradeChestWhole CombinedAcneScore Scars FaceScar ScarringSeverityFace FamilyScar pt_location pt_urban_loc WellBeingScale ResultsPHQ9 BMI Socioeconomic_status Type_adultAcne
 
 *Multiple imputation test
-mi impute chained (regress) Age ONSET ResultsPHQ9, add(10) orderasis nomonotone force noisily
+mi impute chained (regress) ONSET ResultsPHQ9, add(10) orderasis nomonotone force noisily
 save "Z:\imputed_main_var.dta", replace
 mi describe
 
@@ -85,6 +141,9 @@ mi impute pmm Age, add(10) knn(3)
 mi impute pmm ResultsPHQ9, add(10) knn(3)
 mi impute pmm ONSET, add(10) knn(3)
 mi estimate: regress ResultsPHQ9 age_adult
+
+gen onset_adult = (ONSET > 25)
+mi estimate: regress ResultsPHQ9 onset_adult
 
 *Bootstrapping 
 program define bootstr, rclass 
