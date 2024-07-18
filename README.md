@@ -1,4 +1,4 @@
-# Comparing the Psychosocial Impact of Adult Acne versus Adolescent Acne in Female Patients
+# Comparing the Psychosocial Impact of Adult Acne versus Adolescent Acne
 
 ## Description 
 Acne is a common skin condition that affects 95% of people at some point in their lives. With the visible blemishes, acne brings about notable psychosocial impacts, including emotional distress, hinderances to social functioning, and psychiatric comorbidities. When comparing acne in adolescent and adult cohorts, previous research has tended to focus on clinical features and epidemiological differences, with a notable lack of research on differences in psychosocial impacts. Additionally, the limited comparisons between age groups that are available do not reach a consensus. Hence, the current research aims to fill in this gap in the literature, to potentially tailor psychosocial treatment and improve patient outcomes. 
@@ -13,3 +13,4 @@ This project requires the following Python packages:
 - Pandas 
 - Scikit-learn
 - Missingno
+Python (v3.11.9) was used for data cleaning and pre-processing, and Stata (v18.0) was used for statistical analyses.
