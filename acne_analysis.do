@@ -28,8 +28,77 @@ replace MildSeverity = 0 if missing(MildSeverity)
 replace ModerateSeverity = 0 if missing(ModerateSeverity)
 replace FamilyDepression = 0 if missing(FamilyDepression)
 
-*Inspecting missingness 
+*Inspecting missingness per row 
 egen miss_count = rowmiss(*)
+tab miss_count
+/*
+
+ miss_count |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 |          4        0.18        0.18
+          1 |         20        0.89        1.07
+          2 |         53        2.36        3.43
+          3 |        126        5.61        9.05
+          4 |        216        9.63       18.67
+          5 |        227       10.12       28.79
+          6 |        117        5.21       34.00
+          7 |         67        2.99       36.99
+          8 |         40        1.78       38.77
+          9 |         18        0.80       39.57
+         10 |         13        0.58       40.15
+         11 |         10        0.45       40.60
+         12 |          4        0.18       40.78
+         13 |          2        0.09       40.86
+         14 |          7        0.31       41.18
+         15 |          4        0.18       41.35
+         16 |          3        0.13       41.49
+         17 |          4        0.18       41.67
+         18 |          7        0.31       41.98
+         19 |         27        1.20       43.18
+         20 |         14        0.62       43.81
+         21 |         31        1.38       45.19
+         22 |         23        1.02       46.21
+         23 |         60        2.67       48.89
+         24 |         12        0.53       49.42
+         25 |         11        0.49       49.91
+         26 |         10        0.45       50.36
+         27 |          4        0.18       50.53
+         28 |          2        0.09       50.62
+         29 |          1        0.04       50.67
+         30 |         23        1.02       51.69
+         31 |        105        4.68       56.37
+         32 |        110        4.90       61.27
+         33 |        391       17.42       78.70
+         34 |        122        5.44       84.14
+         35 |         63        2.81       86.94
+         36 |         54        2.41       89.35
+         37 |         23        1.02       90.37
+         38 |         16        0.71       91.09
+         39 |          9        0.40       91.49
+         40 |          4        0.18       91.67
+         41 |          1        0.04       91.71
+         42 |          2        0.09       91.80
+         43 |          2        0.09       91.89
+         44 |          3        0.13       92.02
+         45 |          1        0.04       92.07
+         46 |          1        0.04       92.11
+         47 |          1        0.04       92.16
+         48 |          1        0.04       92.20
+         49 |         47        2.09       94.30
+         50 |         22        0.98       95.28
+         52 |         98        4.37       99.64
+         53 |          8        0.36      100.00
+------------+-----------------------------------
+      Total |      2,244      100.00
+
+*/
+
+*Dropping rows with >48 missing values 
+drop if miss_count>48
+*Arranging in order of increasing missingness by ID 
+gsort +ID +miss_count
+*Dropping duplicates (keeping those with most information)
+duplicates drop ID, force
 
 *Inspecting variables for out-of-place values (e.g. 0.0001 cigarettes smoked)
 tab cigarettes
@@ -198,11 +267,9 @@ twoway (histogram Age, color(red%50) lcolor(none) bin(30)) ///
 *Correlation matrix of PHQ9 results and demographic characteristics
 spearman phq9_score Age ONSET Sex smoke cigarettes Alcohol pt_location pt_urban_loc BMI Socioeconomic_status
 
-*Ensuring only unique patient IDs are included
-duplicates drop ID, force
-*Dropping patient ID variable   
-drop ID
-sum
+*Checking if different psychosocial impact measures correlate
+corr phq9_score hads_dep_score
+corr hads_dep_score WellBeingScale
 
 **Multiple imputation
 *Set imputation to wide format
