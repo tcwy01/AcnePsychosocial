@@ -257,6 +257,10 @@ sum Sex
 sum
 tab Age
 hist ONSET
+qnorm hads_anx_score
+hist phq9_score, norm
+hist hads_dep_score, norm
+hist hads_anx_score, norm
 
 *Two-way histogram of present age and age of onset 
 twoway (histogram Age, color(red%50) lcolor(none) bin(30)) ///
@@ -265,11 +269,23 @@ twoway (histogram Age, color(red%50) lcolor(none) bin(30)) ///
 	   ytitle("Density") xtitle("Years")
 	   
 *Correlation matrix of PHQ9 results and demographic characteristics
-spearman phq9_score Age ONSET Sex smoke cigarettes Alcohol pt_location pt_urban_loc BMI Socioeconomic_status
+spearman phq9_score Age ONSET Duration Yes_adult Sex smoke cigarettes Alcohol pt_location pt_urban_loc BMI Socioeconomic_status 
+*Correlation matrix of HADS depression results and demographic characteristics 
+spearman hads_dep_score Age ONSET Duration Yes_adult Sex smoke cigarettes Alcohol pt_location pt_urban_loc BMI Socioeconomic_status 
+*Correlation matrix of HADS depression results and demographic characteristics 
+spearman hads_anx_score Age ONSET Duration Yes_adult Sex smoke cigarettes Alcohol pt_location pt_urban_loc BMI Socioeconomic_status 
 
 *Checking if different psychosocial impact measures correlate
 corr phq9_score hads_dep_score
 corr hads_dep_score WellBeingScale
+
+*Linear regression before imputation 
+reg WellBeingScale Duration if Sex==1, beta
+reg phq9_score ONSET if Sex==0, beta
+reg phq9_score ONSET if Sex==1, beta
+reg phq9_score Duration if Sex==0, beta
+reg phq9_score Duration if Sex==1, beta
+reg phq9_score Duration c.ONSET##Sex, beta
 
 **Multiple imputation
 *Set imputation to wide format
