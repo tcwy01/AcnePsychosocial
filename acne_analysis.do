@@ -294,17 +294,15 @@ mi set wide
 set seed 2024
 
 *Registering variables for imputation
-mi register imputed Age Sex smoke cigarettes Alcohol ONSET Duration persistent  NurseLeedsGradeFaceWhole NurseBackLeedsGrade NurseLeedsGradeChestWhole CombinedAcneScore Scars FaceScar ScarringSeverityFace FamilyScar pt_location pt_urban_loc WellBeingScale ResultsPHQ9 BMI Socioeconomic_status Type_adultAcne
+mi register imputed Age Sex smoke cigarettes Alcohol ONSET Duration persistent  NurseLeedsGradeFaceWhole NurseBackLeedsGrade NurseLeedsGradeChestWhole CombinedAcneScore Scars FaceScar ScarringSeverityFace FamilyScar pt_location pt_urban_loc WellBeingScale New_Level_of_stress BMI Yes_adult Socioeconomic_status Type_adultAcne phq9_score hads_dep_score hads_anx_score 
 
 *Multiple imputation test
-mi impute chained (regress) ONSET ResultsPHQ9, add(10) orderasis nomonotone force noisily
+mi impute chained (regress) ONSET Duration phq9_score hads_dep_score hads_anx_score WellBeingScale, add(10) orderasis nomonotone force noisily
 save "Z:\imputed_main_var.dta", replace
-mi describe
+mi describe 
 
 *Multiple imputation according to type of data (chained) 
-*mi impute chained (regress) Age cigarettes ONSET Duration NurseLeedsGradeFaceWhole NurseBackLeedsGrade NurseLeedsGradeChestWhole WellBeingScale ResultsPHQ9 BMI (logit, augment) Sex smoke Alcohol persistent Scars FaceScar FamilyScar Socioeconomic_status (ologit) ScarringSeverityFace (mlogit) pt_location pt_urban_loc Type_adultAcne, add(10) orderasis nomonotone force noisily augment
-
-codebook Age Sex smoke cigarettes Alcohol ONSET Duration persistent  NurseLeedsGradeFaceWhole NurseBackLeedsGrade NurseLeedsGradeChestWhole CombinedAcneScore Scars FaceScar ScarringSeverityFace FamilyScar pt_location pt_urban_loc WellBeingScale ResultsPHQ9 BMI Socioeconomic_status Type_adultAcne
+*mi impute chained (regress) Age cigarettes ONSET Duration NurseLeedsGradeFaceWhole NurseBackLeedsGrade NurseLeedsGradeChestWhole WellBeingScale New_Level_of_stress phq9_score hads_dep_score hads_anx_score BMI (logit, augment) Sex smoke Alcohol persistent Scars FaceScar FamilyScar Socioeconomic_status (ologit) ScarringSeverityFace (mlogit) pt_location pt_urban_loc Type_adultAcne, add(10) orderasis nomonotone force noisily augment
 
 *Multiple imputation using predictive mean matching
 *mi impute pmm Age Sex smoke cigarettes Alcohol ONSET Duration persistent  NurseLeedsGradeFaceWhole NurseBackLeedsGrade NurseLeedsGradeChestWhole CombinedAcneScore Scars FaceScar ScarringSeverityFace FamilyScar pt_location pt_urban_loc WellBeingScale ResultsPHQ9 BMI Socioeconomic_status Type_adultAcne, add(10) knn(5)
@@ -316,28 +314,22 @@ save "Z:\imputed_acne_psychosocial.dta", replace
 use "Z:\imputed_main_var.dta"
 
 *Linear regression model (outcome predictor) (Age as continuous variable)
-mi estimate: regress ResultsPHQ9 Age
-mi estimate: regress ResultsPHQ9 ONSET 
-mi estimate: regress ResultsPHQ9 Age ONSET
+mi estimate: regress phq9_score ONSET 
+mi estimate: regress phq9_score Duration
+mi estimate: regress WellBeingScale ONSET
+mi estimate: regress WellBeingScale Duration
+mi estimate: regress hads_dep_score ONSET
+mi estimate: regress hads_dep_score Duration
+mi estimate: regress hads_anx_score ONSET
+mi estimate: regress hads_anx_score Duration
 
 *Linear regression model (Age as binary >=25)
-*mi register imputed Yes_adult
-*mi impute pmm Yes_adult, add(10) knn(3)
-gen age_adult = (Age >= 25)
-mi set wide 
-mi impute pmm Age, add(10) knn(3)
-mi impute pmm ResultsPHQ9, add(10) knn(3)
-mi impute pmm ONSET, add(10) knn(3)
-mi estimate: regress ResultsPHQ9 age_adult
-
 gen onset_adult = (ONSET > 25)
-mi estimate: regress ResultsPHQ9 onset_adult
+sum onset_adult
+mi estimate: regress phq9_score onset_adult
+mi estimate: regress WellBeingScale onset_adult
 
-*Bootstrapping 
-program define bootstr, rclass 
-	mi impute chained (regress) Age ONSET ResultsPHQ9, add(10) 
-	mi estimate: regress ResultsPHQ9 Age ONSET
-	return scalar b_phq = el()
+
 
 
 
