@@ -9,6 +9,10 @@ tabulate Sex
 *Labelling variables 
 label variable ResultsPHQ9 "PHQ-9 score shortly after starting clinic"
 label variable ONSET "age of acne onset"
+label variable Sex "0=Male, 1=Female"
+label variable Socioeconomic_status "Low (0) and middle-to-upper (1) socioeconomic income, based on monthly income"
+label variable Type_adultAcne "1=late-onset, 2=persistent, 3=recurrent"
+label variable WellBeingScale "acne-specific wellbeing scale from patient questionnaire, 0=no effect, 10=ruins life"
 
 *Renaming variables with long names
 rename New_where_does_the_pt_live pt_location
@@ -116,6 +120,8 @@ hist phq9_score
 drop phq9_total
 drop phq9_missing
 drop phq9_av
+drop ResultsPHQ9
+label variable phq9_score "PHQ-9 results upon admission"
 
 *Summing individual HADS scores to calculate overall score 
 egen hads_dep = rowtotal(HAD_I_Still_Enjoy HAD_I_Can_Laugh HAD_I_Feel_Cheerful HAD_I_Feel_Slowed_Down HAD_I_Have_Lost HAD_I_look_forward HAD_I_Enjoy_a_good_book)
@@ -168,6 +174,9 @@ drop hadsdep_missing
 drop hadsanx_missing 
 drop dep_av
 drop anx_av
+drop Results_Had
+label variable hads_dep_score "Hospital depression score upon admission"
+label variable hads_anx_score "Hospital anxiety score upon admission"
 
 *Saving changes
 save "Z:\acne_psychosocial_v3.dta", replace
