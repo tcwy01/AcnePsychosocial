@@ -5,7 +5,6 @@ use "Z:\acne_psychosocial_v3.dta"
 *Recoding sex binary feature (0=female,1=male)
 recode Sex (2=0)
 tabulate Sex
-save "Z:\acne_psychosocial_v3.dta", replace
 
 *Labelling variables 
 label variable ResultsPHQ9 "PHQ-9 score shortly after starting clinic"
@@ -80,18 +79,99 @@ recode PHQ9_5 (0=.) (1=0) (2=1) (3=2) (4=3)
 recode PHQ9_6 (0=.) (1=0) (2=1) (3=2) (4=3)
 recode PHQ9_7 (0=.) (1=0) (2=1) (3=2) (4=3)
 recode PHQ9_8 (0=.) (1=0) (2=1) (3=2) (4=3)
-recode PHQ9_ (0=.) (1=0) (2=1) (3=2) (4=3)
+recode PHQ9_9 (0=.) (1=0) (2=1) (3=2) (4=3)
 
 *Summing individual PHQ-9 scores to calculate overall score
 egen phq9_total = rowtotal(PHQ9_1 PHQ9_2 PHQ9_3 PHQ9_4 PHQ9_5 PHQ9_6 PHQ9_7 PHQ9_8 PHQ9_9)
+*Inspecting summed PHQ-9 scoring 
 tab phq9_total
-qnorm phq9_total
-hist phq9_total
-save "Z:\acne_psychosocial_v3.dta", replace
+
+*Finding how many questions are missing for each row 
+egen phq9_missing = rowmiss(PHQ9_1 PHQ9_2 PHQ9_3 PHQ9_4 PHQ9_5 PHQ9_6 PHQ9_7 PHQ9_8 PHQ9_9)
+tab phq9_missing
+*Setting rows with all PHQ-9 questions missing as nan 
+replace phq9_total = . if phq9_missing == 9
+*Calculating average score for the questions in the row 
+egen phq9_av = rmean(PHQ9_1 PHQ9_2 PHQ9_3 PHQ9_4 PHQ9_5 PHQ9_6 PHQ9_7 PHQ9_8 PHQ9_9)
+tab phq9_av
+*Replacing missing questions in each row with row average 
+replace PHQ9_1 = phq9_av if missing(PHQ9_1)
+replace PHQ9_2 = phq9_av if missing(PHQ9_2)
+replace PHQ9_3 = phq9_av if missing(PHQ9_3)
+replace PHQ9_4 = phq9_av if missing(PHQ9_4)
+replace PHQ9_5 = phq9_av if missing(PHQ9_5)
+replace PHQ9_6 = phq9_av if missing(PHQ9_6)
+replace PHQ9_7 = phq9_av if missing(PHQ9_7)
+replace PHQ9_8 = phq9_av if missing(PHQ9_8)
+replace PHQ9_9 = phq9_av if missing(PHQ9_9)
+*Recomputing row summed PHQ-9 score with imputed values 
+egen phq9_score = rowtotal(PHQ9_1 PHQ9_2 PHQ9_3 PHQ9_4 PHQ9_5 PHQ9_6 PHQ9_7 PHQ9_8 PHQ9_9)
+*Setting rows with all PHQ-9 questions missing as nan 
+replace phq9_score = . if phq9_missing == 9
+*Rounding each summed PHQ-9 score 
+replace phq9_score = round(phq9_score)
+tab phq9_score
+hist phq9_score
+*Dropping temporary variables 
+drop phq9_total
+drop phq9_missing
+drop phq9_av
 
 *Summing individual HADS scores to calculate overall score 
-egen hads_dep = rowtotal(HAD_I_Still_Enjoy HAD_I_Can_Laugh HAD_I_Feel_Cheerful HAD_I_Feel_Slowed_Down HAD_I_Have_Lost tab HAD_I_look_forward HAD_I_Enjoy_a_good_book)
+egen hads_dep = rowtotal(HAD_I_Still_Enjoy HAD_I_Can_Laugh HAD_I_Feel_Cheerful HAD_I_Feel_Slowed_Down HAD_I_Have_Lost HAD_I_look_forward HAD_I_Enjoy_a_good_book)
 egen hads_anx = rowtotal(HAD_I_Feel_Tense HAD_I_Frightened_Feeling HAD_Worrying_Thoughts HAD_I_Can_Sit_Relaxed HAD_I_Get_Frightened HAD_I_Feel_restless HAD_I_Get_sudden_panic)
+*Inspecting summed PHQ-9 scoring
+tab hads_dep
+tab hads_anx
+qnorm hads_dep
+
+*Finding how many questions are missing for each row 
+egen hadsdep_missing = rowmiss(HAD_I_Still_Enjoy HAD_I_Can_Laugh HAD_I_Feel_Cheerful HAD_I_Feel_Slowed_Down HAD_I_Have_Lost HAD_I_look_forward HAD_I_Enjoy_a_good_book)
+egen hadsanx_missing = rowmiss(HAD_I_Feel_Tense HAD_I_Frightened_Feeling HAD_Worrying_Thoughts HAD_I_Can_Sit_Relaxed HAD_I_Get_Frightened HAD_I_Feel_restless HAD_I_Get_sudden_panic)
+*Setting rows with all HADS questions missing as nan
+replace hads_dep = . if hadsdep_missing == 7
+replace hads_anx = . if hadsanx_missing == 7
+*Calculating average score for questions in the row
+egen dep_av = rmean(HAD_I_Still_Enjoy HAD_I_Can_Laugh HAD_I_Feel_Cheerful HAD_I_Feel_Slowed_Down HAD_I_Have_Lost HAD_I_look_forward HAD_I_Enjoy_a_good_book)
+egen anx_av = rmean(HAD_I_Feel_Tense HAD_I_Frightened_Feeling HAD_Worrying_Thoughts HAD_I_Can_Sit_Relaxed HAD_I_Get_Frightened HAD_I_Feel_restless HAD_I_Get_sudden_panic)
+*Replacing missing questions in each row with row average 
+replace HAD_I_Feel_Tense = anx_av if missing(HAD_I_Feel_Tense)
+replace HAD_I_Still_Enjoy = dep_av if missing(HAD_I_Still_Enjoy)
+replace HAD_I_Frightened_Feeling = anx_av if missing(HAD_I_Frightened_Feeling)
+replace HAD_I_Can_Laugh = dep_av if missing(HAD_I_Can_Laugh)
+replace HAD_Worrying_Thoughts = anx_av if missing(HAD_Worrying_Thoughts)
+replace HAD_I_Feel_Cheerful = dep_av if missing(HAD_I_Feel_Cheerful)
+replace HAD_I_Can_Sit_Relaxed = anx_av if missing(HAD_I_Can_Sit_Relaxed)
+replace HAD_I_Feel_Slowed_Down = dep_av if missing(HAD_I_Feel_Slowed_Down)
+replace HAD_I_Get_Frightened = anx_av if missing(HAD_I_Get_Frightened)
+replace HAD_I_Have_Lost = dep_av if missing(HAD_I_Have_Lost)
+replace HAD_I_Feel_restless = anx_av if missing(HAD_I_Feel_restless)
+replace HAD_I_look_forward = dep_av if missing(HAD_I_look_forward)
+replace HAD_I_Get_sudden_panic = anx_av if missing(HAD_I_Get_sudden_panic)
+replace HAD_I_Enjoy_a_good_book = dep_av if missing(HAD_I_Enjoy_a_good_book)
+*Recomputing summed HADS score with imputed values 
+egen hads_dep_score = rowtotal(HAD_I_Still_Enjoy HAD_I_Can_Laugh HAD_I_Feel_Cheerful HAD_I_Feel_Slowed_Down HAD_I_Have_Lost HAD_I_look_forward HAD_I_Enjoy_a_good_book)
+egen hads_anx_score = rowtotal(HAD_I_Feel_Tense HAD_I_Frightened_Feeling HAD_Worrying_Thoughts HAD_I_Can_Sit_Relaxed HAD_I_Get_Frightened HAD_I_Feel_restless HAD_I_Get_sudden_panic)
+*Setting rows with all HADS questions missing as nan
+replace hads_dep_score = . if hadsdep_missing == 7
+replace hads_anx_score = . if hadsanx_missing == 7
+*Rounding each summed HADS score 
+replace hads_dep_score = round(hads_dep)
+replace hads_anx_score = round(hads_anx)
+tab hads_dep_score
+tab hads_anx_score
+hist hads_anx_score
+*Dropping temporary variables 
+drop hads_dep
+drop hads_anx
+drop hadsdep_missing 
+drop hadsanx_missing 
+drop dep_av
+drop anx_av
+
+*Saving changes
+save "Z:\acne_psychosocial_v3.dta", replace
+use "Z:\acne_psychosocial_v3.dta" 
 
 **Descriptive stats and exploring data 
 *Inspecting present age and age of onset
@@ -107,7 +187,7 @@ twoway (histogram Age, color(red%50) lcolor(none) bin(30)) ///
 	   ytitle("Density") xtitle("Years")
 	   
 *Correlation matrix of PHQ9 results and demographic characteristics
-spearman ResultsPHQ9 Age ONSET Sex smoke cigarettes Alcohol New_where_does_the_pt_live New_if_pt_lives_in_urban_environ BMI Socioeconomic_status
+spearman phq9_score Age ONSET Sex smoke cigarettes Alcohol pt_location pt_urban_loc BMI Socioeconomic_status
 
 *Ensuring only unique patient IDs are included
 duplicates drop ID, force
