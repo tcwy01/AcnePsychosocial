@@ -70,12 +70,22 @@ replace cigarettes = . if cigarettes == 0.00001
 replace WellBeingScale = . if WellBeingScale == 6.5
 replace New_Level_of_stress = . if New_Level_of_stress > 10
 
-local varlist PHQ9_1 PHQ9_2 PHQ9_3 PHQ9_4 PHQ9_5 PHQ9_6 PHQ9_7 PHQ9_8 PHQ9_9 HAD_I_Feel_Tense HAD_I_Still_Enjoy HAD_I_Frightened_Feeling HAD_I_Can_Laugh HAD_Worrying_Thoughts HAD_I_Feel_Cheerful HAD_I_Can_Sit_Relaxed HAD_I_Feel_Slowed_Down HAD_I_Have_Lost HAD_I_Feel_restless HAD_I_look_forward HAD_I_Get_sudden_panic HAD_I_Enjoy_a_good_book
+*Recoding individual PHQ-9 questions to fit the scoring metrics
+recode PHQ9_1 (0=.) (1=0) (2=1) (3=2) (4=3)
+recode PHQ9_2 (0=.) (1=0) (2=1) (3=2) (4=3)
+recode PHQ9_3 (0=.) (1=0) (2=1) (3=2) (4=3)
+recode PHQ9_4 (0=.) (1=0) (2=1) (3=2) (4=3)
+recode PHQ9_5 (0=.) (1=0) (2=1) (3=2) (4=3)
+recode PHQ9_6 (0=.) (1=0) (2=1) (3=2) (4=3)
+recode PHQ9_7 (0=.) (1=0) (2=1) (3=2) (4=3)
+recode PHQ9_8 (0=.) (1=0) (2=1) (3=2) (4=3)
+recode PHQ9_ (0=.) (1=0) (2=1) (3=2) (4=3)
 
-foreach var of local varlist{
-	replace var = . if var > 4
-}
-tab HAD_I_Get_sudden_panic
+*Summing individual PHQ-9 scores to calculate overall score
+egen phq9_total = rowtotal(PHQ9_1 PHQ9_2 PHQ9_3 PHQ9_4 PHQ9_5 PHQ9_6 PHQ9_7 PHQ9_8 PHQ9_9)
+tab phq9_total
+qnorm phq9_total
+save "Z:\acne_psychosocial_v3.dta", replace
 
 **Descriptive stats and exploring data 
 *Inspecting present age and age of onset
