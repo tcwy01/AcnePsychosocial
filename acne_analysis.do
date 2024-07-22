@@ -261,24 +261,51 @@ qnorm hads_anx_score
 hist phq9_score, norm
 hist hads_dep_score, norm
 hist hads_anx_score, norm
-
-*Two-way histogram of present age and age of onset 
-twoway (histogram Age, color(red%50) lcolor(none) bin(30)) ///
-	   (histogram ONSET, color(green%50) lcolor(none) bin(30)), ///
-	   legend(label(1 "Age at PHQ9 scoring") label(2 "Age of acne onset")) ///
-	   ytitle("Density") xtitle("Years")
-	   
-*Correlation matrix of PHQ9 results and demographic characteristics
-spearman phq9_score Age ONSET Duration Yes_adult Sex smoke cigarettes Alcohol pt_location pt_urban_loc BMI Socioeconomic_status 
-*Correlation matrix of HADS depression results and demographic characteristics 
-spearman hads_dep_score Age ONSET Duration Yes_adult Sex smoke cigarettes Alcohol pt_location pt_urban_loc BMI Socioeconomic_status 
-*Correlation matrix of HADS depression results and demographic characteristics 
-spearman hads_anx_score Age ONSET Duration Yes_adult Sex smoke cigarettes Alcohol pt_location pt_urban_loc BMI Socioeconomic_status 
+sum phq9_score
 
 *Checking if different psychosocial impact measures correlate
 corr phq9_score hads_dep_score
 corr hads_dep_score WellBeingScale
 
+*Figure 1: Distribution of ages at acne onset and ages upon admission 
+*Two-way histogram of present age and age of onset 
+twoway (histogram Age, color(red%50) lcolor(none) bin(30)) ///
+	(histogram ONSET, color(green%50) lcolor(none) bin(30)), ///
+	legend(label(1 "Age upon admission") label(2 "Age of acne onset")) ///
+	ytitle("Density") xtitle("Years")
+
+*Figure 2: Comparison of means between adolescents and adults for different psychosocial impact measures 	
+*Checking if adults and adolescents have equal variances  
+sdtest phq9_score, by(Yes_adult) /*unequal variances shown*/
+sdtest hads_anx_score, by(Yes_adult)
+
+*Welch's t test to compare means of adolescents and adults 
+ttest phq9_score, by(Yes_adult) unequal /*adults show slightly higher, but not statistically significant*/
+ttest hads_anx_score, by(Yes_adult) unequal /*adults higher, statistically significant*/
+ttest hads_dep_score, by(Yes_adult) unequal /*adults higher, statistically significant*/
+ttest WellBeingScale, by(Yes_adult) unequal /*adults higher, statistically significant*/
+*Visualisation made in Python due to difficulties with Stata
+
+*Figure X: Correlation between psychosocial impacts and demographic characteristics 
+*Correlation matrix of PHQ9 results and demographic characteristics
+spearman phq9_score Age ONSET Duration Yes_adult Sex smoke cigarettes Alcohol pt_location pt_urban_loc BMI Socioeconomic_status 
+*Correlation matrix of HADS depression results and demographic characteristics 
+spearman hads_dep_score Age ONSET Duration Yes_adult Sex smoke cigarettes Alcohol pt_location pt_urban_loc BMI Socioeconomic_status 
+*Correlation matrix of HADS depression results and demographic characteristics 
+spearman hads_anx_score Age ONSET Duration Yes_adult Sex smoke cigarettes Alcohol pt_location pt_urban_loc BMI Socioeconomic_status
+*Using heatplot tool by https://github.com/benjann/heatplot
+*Installing required packages for heatplot tool 
+ssc install heatplot, replace
+ssc install colrspace, replace
+ssc install palettes, replace
+ssc install gtools, replace
+*Generating heatplot 
+spearman hads_anx_score ONSET Duration Yes_adult Sex smoke cigarettes Alcohol pt_location pt_urban_loc BMI Socioeconomic_status 
+matrix C = r(Rho)
+heatplot C, values(format(%9.3f)) color(hcl diverging, intensity(.8)) ///
+	legend(off) aspectratio(1) lower
+
+*Table 2: Linear regression 
 *Linear regression before imputation 
 reg WellBeingScale Duration if Sex==1, beta
 reg phq9_score ONSET if Sex==0, beta
@@ -286,6 +313,13 @@ reg phq9_score ONSET if Sex==1, beta
 reg phq9_score Duration if Sex==0, beta
 reg phq9_score Duration if Sex==1, beta
 reg phq9_score Duration c.ONSET##Sex, beta
+reg phq9_score Yes_adult, beta
+reg WellBeingScale Yes_adult, beta
+
+*Calculating effect size 
+esize twosample WellBeingScale, by (Yes_adult) glass
+esize twosample hads_anx_score, by (Yes_adult) glass 
+esize twosample hads_dep_score, by (Yes_adult) glass
 
 **Multiple imputation
 *Set imputation to wide format
