@@ -262,6 +262,7 @@ hist phq9_score, norm
 hist hads_dep_score, norm
 hist hads_anx_score, norm
 sum phq9_score
+tab Type_adultAcne
 
 *Checking if different psychosocial impact measures correlate
 corr phq9_score hads_dep_score
@@ -315,6 +316,8 @@ reg phq9_score Duration if Sex==1, beta
 reg phq9_score Duration c.ONSET##Sex, beta
 reg phq9_score Yes_adult, beta
 reg WellBeingScale Yes_adult, beta
+reg WellBeingScale Type_adultAcne if Sex==0, beta
+reg hads_anx_score Type_adultAcne, beta
 
 *Calculating effect size 
 esize twosample WellBeingScale, by (Yes_adult) glass
