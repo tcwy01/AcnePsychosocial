@@ -101,7 +101,7 @@ gsort +ID +miss_count
 duplicates drop ID, force
 
 *Inspecting variables for out-of-place values (e.g. 0.0001 cigarettes smoked)
-tab cigarettes
+sum
 tab ONSET 
 tab Duration 
 tab NurseBackLeedsGrade 
@@ -237,13 +237,12 @@ tab hads_dep_score
 tab hads_anx_score
 hist hads_anx_score
 *Dropping temporary variables 
-drop hads_dep
-drop hads_anx
-drop hadsdep_missing 
-drop hadsanx_missing 
-drop dep_av
-drop anx_av
-drop Results_Had
+drop hads_dep hads_anx hadsdep_missing hadsanx_missing dep_av anx_av Results_Had /*temporary variable not required for final dataset*/
+drop PHQ9_1 PHQ9_2 PHQ9_3 PHQ9_4 PHQ9_5 PHQ9_6 PHQ9_7 PHQ9_8 PHQ9_9 HAD_I_Still_Enjoy HAD_I_Can_Laugh HAD_I_Feel_Cheerful HAD_I_Feel_Slowed_Down HAD_I_Have_Lost HAD_I_look_forward HAD_I_Enjoy_a_good_book HAD_I_Feel_Tense HAD_I_Frightened_Feeling HAD_Worrying_Thoughts HAD_I_Can_Sit_Relaxed HAD_I_Get_Frightened HAD_I_Feel_restless HAD_I_Get_sudden_panic /*individual questions no longer needed, due to summed scores*/
+drop miss_count /*temporary variable not required for final dataset*/
+drop Weight Height /*no longer required due to BMI variable*/
+drop persistent /*not required due to 'Type_adultAcne' variable*/
+describe
 label variable hads_dep_score "Hospital depression score upon admission"
 label variable hads_anx_score "Hospital anxiety score upon admission"
 
@@ -276,7 +275,7 @@ twoway (histogram Age, color(red%50) lcolor(none) bin(30)) ///
 	legend(label(1 "Age upon admission") label(2 "Age of acne onset")) ///
 	ytitle("Density") xtitle("Years")
 
-**Univariable regression analysis 
+**Univariable analysis 
 *Figure 2: Comparison of means between adolescents and adults for different psychosocial impact measures 	
 *Checking if adults and adolescents have equal variances  
 sdtest phq9_score, by(Yes_adult) /*unequal variances shown*/
@@ -378,7 +377,7 @@ clear all
 use "Z:\knn_imputed_acne.dta"
 sum
 
-**Mulivariable regression analysis 
+**Multivariable regression analysis 
 reg WellBeingScale Yes_adult Sex smoke Alcohol pt_urban_loc BMI Socioeconomic_status
 reg hads_anx_score Yes_adult Sex smoke Alcohol pt_urban_loc BMI Socioeconomic_status
 reg hads_dep_score Yes_adult Sex smoke Alcohol pt_urban_loc BMI Socioeconomic_status
