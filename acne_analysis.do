@@ -288,7 +288,7 @@ ttest hads_dep_score, by(Yes_adult) unequal /*adults higher, statistically signi
 ttest WellBeingScale, by(Yes_adult) unequal /*adults higher, statistically significant*/
 *Visualisation made in Python due to difficulties with Stata
 
-*Figure X: Correlation between psychosocial impacts and demographic characteristics 
+*Figure 3: Correlation between psychosocial impacts and demographic characteristics 
 *Correlation matrix of PHQ9 results and demographic characteristics
 spearman phq9_score Age ONSET Duration Yes_adult Sex smoke cigarettes Alcohol pt_location pt_urban_loc BMI Socioeconomic_status 
 *Correlation matrix of HADS depression results and demographic characteristics 
@@ -297,6 +297,7 @@ spearman hads_dep_score Age ONSET Duration Yes_adult Sex smoke cigarettes Alcoho
 spearman hads_anx_score Age ONSET Duration Yes_adult Sex smoke cigarettes Alcohol pt_location pt_urban_loc BMI Socioeconomic_status
 *Correlation matrix of all psychosocial impacts with sex 
 spearman Sex phq9_score hads_dep_score hads_anx_score WellBeingScale
+
 *Using heatplot tool by https://github.com/benjann/heatplot
 *Installing required packages for heatplot tool 
 ssc install heatplot, replace
@@ -313,6 +314,14 @@ spearman Sex phq9_score hads_dep_score hads_anx_score WellBeingScale
 matrix C = r(Rho)
 heatplot C, values(format(%9.3f)) color(hcl diverging, intensity(.8)) ///
 	legend(off) aspectratio(1) lower
+
+*NB Originally planned to explore acne site, grade, and scarring to see if they were predictors of psychosocial impact scoring, but this overcomplicated the project and could not be included in the report. 
+/**Correlation matrix of site of acne with psychosocial impacts
+spearman hads_dep_score FaceAffected BackAffected NeckAffected UpperArmsAffected 
+*Correlation matrix of acne grade with psychosocial impacts
+spearman phq9_score MildSeverity ModerateSeverity NurseLeedsGradeFaceWhole NurseBackLeedsGrade NurseLeedsGradeChestWhole CombinedAcneScore
+*Correlation matrix of scarring with psychosocial impacts
+spearman phq9_score Scars FaceScar ScarringSeverityFace FamilyScar ScarringSeverityFace */
 
 *Table 2: Linear regression 
 *Linear regression before imputation 
@@ -371,6 +380,11 @@ mi estimate: regress WellBeingScale age_adult
 mi estimate: regress phq9_score age_adult
 mi estimate: regress hads_anx_score age_adult
 mi estimate: regress hads_dep_score age_adult
+
+*Calculating effect size 
+mi estimate: esize twosample WellBeingScale, by (Yes_adult) glass
+mi estimate: esize twosample hads_anx_score, by (Yes_adult) glass 
+mi estimate: esize twosample hads_dep_score, by (Yes_adult) glass
 
 *Using KNN imputed data for multivariable regression analysis 
 clear all 
