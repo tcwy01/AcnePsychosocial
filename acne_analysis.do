@@ -288,6 +288,12 @@ ttest hads_dep_score, by(Yes_adult) unequal /*adults higher, statistically signi
 ttest WellBeingScale, by(Yes_adult) unequal /*adults higher, statistically significant*/
 *Visualisation made in Python due to difficulties with Stata
 
+*Effect sizes for t test, by glass delta 
+esize twosample WellBeingScale, by(Yes_adult) glass
+esize twosample phq9_score, by(Yes_adult) glass
+esize twosample hads_anx_score, by(Yes_adult) glass
+esize twosample hads_dep_score, by(Yes_adult) glass
+
 *Figure 3: Correlation between psychosocial impacts and demographic characteristics 
 *Correlation matrix of PHQ9 results and demographic characteristics
 spearman phq9_score Age ONSET Duration Yes_adult Sex smoke cigarettes Alcohol pt_location pt_urban_loc BMI Socioeconomic_status 
@@ -364,6 +370,7 @@ mi describe
 *N.B. multiple imputation using chained equations for this number of variables ran too many problems and could not be solved within the time constraints of the project
 
 *Loading test imputation dataset (with only main variables)
+clear all 
 use "Z:\imputed_main_var.dta"
 
 *Linear regression model (outcome predictor) (Age as continuous variable)
@@ -381,10 +388,12 @@ mi estimate: regress phq9_score age_adult
 mi estimate: regress hads_anx_score age_adult
 mi estimate: regress hads_dep_score age_adult
 
-*Calculating effect size 
-mi estimate: esize twosample WellBeingScale, by (Yes_adult) glass
-mi estimate: esize twosample hads_anx_score, by (Yes_adult) glass 
-mi estimate: esize twosample hads_dep_score, by (Yes_adult) glass
+*Calculating effect size of imputed data by Tiffin, P. A. (2023, Feb). miesize: a Stata .ado package for estimating effect sizes from multiply imputed data. http://repec.org/docs/ssc.php
+ssc install miesize, replace
+miesize WellBeingScale, by (age_adult) glass
+miesize phq9_score, by (age_adult) glass
+miesize hads_anx_score, by (age_adult) glass
+miesize hads_dep_score, by (age_adult) glass
 
 *Using KNN imputed data for multivariable regression analysis 
 clear all 
