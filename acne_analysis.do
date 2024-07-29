@@ -143,6 +143,8 @@ replace cigarettes = . if cigarettes == 0.00001
 replace WellBeingScale = . if WellBeingScale == 6.5
 replace New_Level_of_stress = . if New_Level_of_stress > 10
 
+/* N.B. PHQ-9 not used as the primary outcome measure for research due to the lack of variance shown in the current dataset. With the range being 0-19, it does not represent typical distribution patterns seen in the general population, and should range from 0-27 
+(Tomitaka, S., Kawasaki, Y., Ide, K. et al. Distributional patterns of item responses and total scores on the PHQ-9 in the general population: data from the National Health and Nutrition Examination Survey. BMC Psychiatry 18, 108 (2018). https://doi.org/10.1186/s12888-018-1696-9)
 *Recoding individual PHQ-9 questions to fit the scoring metrics
 recode PHQ9_1 (0=.) (1=0) (2=1) (3=2) (4=3)
 recode PHQ9_2 (0=.) (1=0) (2=1) (3=2) (4=3)
@@ -191,6 +193,7 @@ drop phq9_missing
 drop phq9_av
 drop ResultsPHQ9
 label variable phq9_score "PHQ-9 results upon admission"
+*/
 
 *Summing individual HADS scores to calculate overall score 
 egen hads_dep = rowtotal(HAD_I_Still_Enjoy HAD_I_Can_Laugh HAD_I_Feel_Cheerful HAD_I_Feel_Slowed_Down HAD_I_Have_Lost HAD_I_look_forward HAD_I_Enjoy_a_good_book)
@@ -242,6 +245,8 @@ drop PHQ9_1 PHQ9_2 PHQ9_3 PHQ9_4 PHQ9_5 PHQ9_6 PHQ9_7 PHQ9_8 PHQ9_9 HAD_I_Still_
 drop miss_count /*temporary variable not required for final dataset*/
 drop Weight Height /*no longer required due to BMI variable*/
 drop persistent /*not required due to 'Type_adultAcne' variable*/
+drop phq9_score /*phq-9 not used as primary outcome due to lack of variance*/
+drop WellBeingScale New_Level_of_stress /*Wellbeing scale not used as primary outcome due to close ties with acne*/
 describe
 label variable hads_dep_score "Hospital depression score upon admission"
 label variable hads_anx_score "Hospital anxiety score upon admission"
@@ -253,20 +258,13 @@ use "Z:\acne_psychosocial_v3.dta"
 
 **Descriptive stats and exploring data 
 *Inspecting present age and age of onset
-sum Sex
 sum
 tab hads_dep_score
-hist phq9_score
+hist hads_dep_score
 qnorm hads_anx_score
-hist phq9_score, norm
 hist hads_dep_score, norm
 hist hads_anx_score, norm
-sum phq9_score
 tab Type_adultAcne
-
-*Checking if different psychosocial impact measures correlate
-spearman phq9_score hads_dep_score /*Expected strong correlation between the two depression scores*/
-spearman hads_dep_score WellBeingScale
 
 *Figure 1: Distribution of ages at acne onset and ages upon admission 
 *Two-way histogram of present age and age of onset 
@@ -276,33 +274,19 @@ twoway (histogram Age, color(red%50) lcolor(none) bin(30)) ///
 	ytitle("Density") xtitle("Years")
 
 **Univariable analysis 
-*Figure 2: Comparison of means between adolescents and adults for different psychosocial impact measures 	
+*Figure 2: Comparison of means between adolescents and adults for HADS scores
 *Checking if adults and adolescents have equal variances  
-sdtest phq9_score, by(Yes_adult) /*unequal variances shown*/
-sdtest hads_anx_score, by(Yes_adult)
+sdtest hads_anx_score, by(Yes_adult) /*unequal variances shown*/
+sd test hads_dep_score, by(Yes_adult)
 
 *Welch's t test to compare means of adolescents and adults 
-ttest phq9_score, by(Yes_adult) unequal /*adults show slightly higher, but not statistically significant*/
 ttest hads_anx_score, by(Yes_adult) unequal /*adults higher, statistically significant*/
 ttest hads_dep_score, by(Yes_adult) unequal /*adults higher, statistically significant*/
-ttest WellBeingScale, by(Yes_adult) unequal /*adults higher, statistically significant*/
 *Visualisation made in Python due to difficulties with Stata
 
 *Effect sizes for t test, by glass delta 
-esize twosample WellBeingScale, by(Yes_adult) glass
-esize twosample phq9_score, by(Yes_adult) glass
 esize twosample hads_anx_score, by(Yes_adult) glass
 esize twosample hads_dep_score, by(Yes_adult) glass
-
-*Figure 3: Correlation between psychosocial impacts and demographic characteristics 
-*Correlation matrix of PHQ9 results and demographic characteristics
-spearman phq9_score Age ONSET Duration Yes_adult Sex smoke cigarettes Alcohol pt_location pt_urban_loc BMI Socioeconomic_status 
-*Correlation matrix of HADS depression results and demographic characteristics 
-spearman hads_dep_score Age ONSET Duration Yes_adult Sex smoke cigarettes Alcohol pt_location pt_urban_loc BMI Socioeconomic_status 
-*Correlation matrix of HADS depression results and demographic characteristics 
-spearman hads_anx_score Age ONSET Duration Yes_adult Sex smoke cigarettes Alcohol pt_location pt_urban_loc BMI Socioeconomic_status
-*Correlation matrix of all psychosocial impacts with sex 
-spearman Sex phq9_score hads_dep_score hads_anx_score WellBeingScale
 
 *Using heatplot tool by https://github.com/benjann/heatplot
 *Installing required packages for heatplot tool 
@@ -310,13 +294,13 @@ ssc install heatplot, replace
 ssc install colrspace, replace
 ssc install palettes, replace
 ssc install gtools, replace
-*Generating heatplot 
-spearman phq9_score ONSET Duration Yes_adult Sex smoke cigarettes Alcohol pt_location pt_urban_loc BMI Socioeconomic_status 
+*Generating dep heatplot 
+spearman hads_dep_score Age ONSET cigarettes BMI  
 matrix C = r(Rho)
 heatplot C, values(format(%9.3f)) color(hcl diverging, intensity(.8)) ///
 	legend(off) aspectratio(1) lower
-*Generating dep heatplot 
-spearman Sex phq9_score hads_dep_score hads_anx_score WellBeingScale
+*Generating anx heatplot 
+spearman hads_anx_score Age ONSET cigarettes BMI  
 matrix C = r(Rho)
 heatplot C, values(format(%9.3f)) color(hcl diverging, intensity(.8)) ///
 	legend(off) aspectratio(1) lower
@@ -331,25 +315,19 @@ spearman phq9_score Scars FaceScar ScarringSeverityFace FamilyScar ScarringSever
 
 *Table 2: Linear regression 
 *Linear regression before imputation 
-reg WellBeingScale Duration if Sex==1, beta
 reg hads_dep_score ONSET, beta
-reg phq9_score ONSET if Sex==1, beta
-reg phq9_score Duration if Sex==0, beta
-reg phq9_score Duration if Sex==1, beta
-reg phq9_score Duration c.ONSET##Sex, beta
-reg phq9_score Yes_adult, beta
 reg hads_dep_score Yes_adult, beta
-reg WellBeingScale Type_adultAcne if Sex==0, beta
+reg hads_anx_score Type_adultAcne if Sex==0, beta
 reg hads_anx_score Type_adultAcne, beta
 
 *Calculating effect size 
-esize twosample WellBeingScale, by (Yes_adult) glass
 esize twosample hads_anx_score, by (Yes_adult) glass 
 esize twosample hads_dep_score, by (Yes_adult) glass
 
 *Comparing means of psychosocial impact according to type of adult acne (one-way ANOVA)
 robvar hads_anx_score, by(Type_adultAcne)
-oneway phq9_score Type_adultAcne /*did not show significant difference between onset groups for any psychosocial impact measures*/
+oneway hads_anx_score Type_adultAcne 
+oneway hads_dep_score Type_adultAcne /*did not show significant difference between onset groups for any psychosocial impact measures*/
 
 **Multiple imputation
 *Set imputation to wide format
@@ -358,24 +336,22 @@ mi set wide
 set seed 2024
 
 *Registering variables for imputation
-mi register imputed Age Sex smoke cigarettes Alcohol ONSET Duration persistent  NurseLeedsGradeFaceWhole NurseBackLeedsGrade NurseLeedsGradeChestWhole CombinedAcneScore Scars FaceScar ScarringSeverityFace FamilyScar pt_location pt_urban_loc WellBeingScale New_Level_of_stress BMI Yes_adult Socioeconomic_status Type_adultAcne phq9_score hads_dep_score hads_anx_score 
-
-*Multiple imputation test
-mi impute chained (regress) Age ONSET Duration phq9_score hads_dep_score hads_anx_score WellBeingScale, add(10) orderasis nomonotone force noisily
-save "Z:\imputed_main_var.dta", replace
-mi describe 
+mi register imputed Age Sex smoke cigarettes Alcohol ONSET Duration pt_location pt_urban_loc BMI Yes_adult Socioeconomic_status Type_adultAcne hads_dep_score hads_anx_score 
 
 *Multiple imputation according to type of data (chained) 
-*mi impute chained (regress) Age cigarettes ONSET Duration NurseLeedsGradeFaceWhole NurseBackLeedsGrade NurseLeedsGradeChestWhole WellBeingScale New_Level_of_stress phq9_score hads_dep_score hads_anx_score BMI (logit, augment) Sex smoke Alcohol persistent Scars FaceScar FamilyScar Socioeconomic_status (ologit) ScarringSeverityFace (mlogit) pt_location pt_urban_loc Type_adultAcne, add(10) orderasis nomonotone force noisily augment 
-*N.B. multiple imputation using chained equations for this number of variables ran too many problems and could not be solved within the time constraints of the project
+mi impute chained (regress) Age cigarettes ONSET Duration hads_dep_score hads_anx_score BMI (logit, augment) Sex smoke Alcohol Socioeconomic_status, add(10) orderasis nomonotone force noisily augment 
+save "Z:\imputed_acne.dta", replace
+mi describe 
 
 *Loading test imputation dataset (with only main variables)
 clear all 
-use "Z:\imputed_main_var.dta"
+use "Z:\imputed_acne.dta"
 
+**Univariable regression analysis
 *Linear regression model (outcome predictor) (Age as continuous variable)
-mi estimate: regress phq9_score ONSET 
-mi estimate: regress WellBeingScale ONSET
+mi estimate: regress hads_anx_score ONSET, beta
+mi estimate: regress hads_dep_score ONSET, beta
+*Getting confidence intervals 
 mi estimate: regress hads_anx_score ONSET
 mi estimate: regress hads_dep_score ONSET
 
@@ -383,28 +359,20 @@ mi estimate: regress hads_dep_score ONSET
 gen age_adult = (Age > 25)
 sum
 tab age_adult
-mi estimate: regress WellBeingScale age_adult
-mi estimate: regress phq9_score age_adult
+mi estimate: regress hads_anx_score age_adult, beta
+mi estimate: regress hads_dep_score age_adult, beta
+*Getting confidence intervals 
 mi estimate: regress hads_anx_score age_adult
 mi estimate: regress hads_dep_score age_adult
 
 *Calculating effect size of imputed data by Tiffin, P. A. (2023, Feb). miesize: a Stata .ado package for estimating effect sizes from multiply imputed data. http://repec.org/docs/ssc.php
 ssc install miesize, replace
-miesize WellBeingScale, by (age_adult) glass
-miesize phq9_score, by (age_adult) glass
 miesize hads_anx_score, by (age_adult) glass
 miesize hads_dep_score, by (age_adult) glass
 
-*Using KNN imputed data for multivariable regression analysis 
-clear all 
-use "Z:\knn_imputed_acne.dta"
-sum
-
 **Multivariable regression analysis 
-reg WellBeingScale Yes_adult Sex smoke Alcohol pt_urban_loc BMI Socioeconomic_status
-reg hads_anx_score Yes_adult Sex smoke Alcohol pt_urban_loc BMI Socioeconomic_status
-reg hads_dep_score Yes_adult Sex smoke Alcohol pt_urban_loc BMI Socioeconomic_status
-
+mi estimate: reg hads_anx_score Yes_adult Sex smoke cigarettes Alcohol pt_location pt_urban_loc BMI Socioeconomic_status
+mi estimate: reg hads_dep_score Yes_adult Sex smoke cigarettes Alcohol pt_location pt_urban_loc BMI Socioeconomic_status
 
 
 
