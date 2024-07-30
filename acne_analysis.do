@@ -1,3 +1,6 @@
+*__________________________________________________________________________________________________________________
+
+**Data cleaning (see 'Acne_script.ipynb' for initial cleaning in Python)
 *Loading in data
 clear all
 use "Z:\acne_psychosocial_v3.dta"
@@ -27,6 +30,12 @@ replace UpperArmsAffected = 0 if missing(UpperArmsAffected)
 replace MildSeverity = 0 if missing(MildSeverity)
 replace ModerateSeverity = 0 if missing(ModerateSeverity)
 replace FamilyDepression = 0 if missing(FamilyDepression)
+
+*Inspecting missingness per variable 
+misstable summarize 
+ssc install mdesc, replace
+mdesc
+sum
 
 *Inspecting missingness per row 
 egen miss_count = rowmiss(*)
@@ -203,6 +212,7 @@ tab hads_dep
 tab hads_anx
 qnorm hads_dep
 
+*Single imputation to handle missing values in HADS questions 
 *Finding how many questions are missing for each row 
 egen hadsdep_missing = rowmiss(HAD_I_Still_Enjoy HAD_I_Can_Laugh HAD_I_Feel_Cheerful HAD_I_Feel_Slowed_Down HAD_I_Have_Lost HAD_I_look_forward HAD_I_Enjoy_a_good_book)
 egen hadsanx_missing = rowmiss(HAD_I_Feel_Tense HAD_I_Frightened_Feeling HAD_Worrying_Thoughts HAD_I_Can_Sit_Relaxed HAD_I_Get_Frightened HAD_I_Feel_restless HAD_I_Get_sudden_panic)
@@ -247,16 +257,22 @@ drop Weight Height /*no longer required due to BMI variable*/
 drop persistent /*not required due to 'Type_adultAcne' variable*/
 drop phq9_score /*phq-9 not used as primary outcome due to lack of variance*/
 drop WellBeingScale New_Level_of_stress /*Wellbeing scale not used as primary outcome due to close ties with acne*/
-describe
+*Creating new variable with HADS total score 
+gen hads_total = hads_anx_score + hads_dep_score
+*Labelling HADS variables 
 label variable hads_dep_score "Hospital depression score upon admission"
 label variable hads_anx_score "Hospital anxiety score upon admission"
+label variable hads_total "HADS total score upon admission"
 
 *Saving changes
 save "Z:\acne_psychosocial_v3.dta", replace
 clear all
 use "Z:\acne_psychosocial_v3.dta" 
 
+*__________________________________________________________________________________________________________________
+
 **Descriptive stats and exploring data 
+*Table 1: Descriptive statistics of the research population
 *Inspecting present age and age of onset
 sum
 tab hads_dep_score
@@ -266,15 +282,17 @@ hist hads_dep_score, norm
 hist hads_anx_score, norm
 tab Type_adultAcne
 
-*Figure 1: Distribution of ages at acne onset and ages upon admission 
+*Figure 2: Distribution of ages at acne onset and ages upon admission 
 *Two-way histogram of present age and age of onset 
 twoway (histogram Age, color(red%50) lcolor(none) bin(30)) ///
 	(histogram ONSET, color(green%50) lcolor(none) bin(30)), ///
 	legend(label(1 "Age upon admission") label(2 "Age of acne onset")) ///
 	ytitle("Density") xtitle("Years")
 
+*__________________________________________________________________________________________________________________
+
 **Univariable analysis 
-*Figure 2: Comparison of means between adolescents and adults for HADS scores
+*Figure 3: Comparison of means between adolescents and adults for HADS scores
 *Checking if adults and adolescents have equal variances  
 sdtest hads_anx_score, by(Yes_adult) /*unequal variances shown*/
 sd test hads_dep_score, by(Yes_adult)
@@ -288,6 +306,41 @@ ttest hads_dep_score, by(Yes_adult) unequal /*adults higher, statistically signi
 esize twosample hads_anx_score, by(Yes_adult) glass
 esize twosample hads_dep_score, by(Yes_adult) glass
 
+*Figure 4: Histogram of anxiety and depression scores
+*Creating variables for HADS scores based on age cohort 
+gen anx_adult = hads_anx_score if Yes_adult == 1
+gen anx_teen = hads_anx_score if Yes_adult == 0
+gen dep_adult = hads_dep_score if Yes_adult == 1 
+gen dep_teen = hads_dep_score if Yes_adult == 0
+*Plotting histogram for anxiety
+twoway (hist anx_adult, start(0) width(1) color(red%50)) ///
+	(hist anx_teen, start(0) width(1) color(blue%50)) ///
+	(kdensity anx_adult, lcolor(red)) ///
+	(kdensity anx_teen, lcolor(blue)), ///
+	legend(label(1 "Adults (>25)") label(2 "Adolescents") ////
+	label (3 "Adult density") label(4 "Adolescent density")) ///
+	xtitle("HADS-Anxiety score") ytitle("Frequency") name("Anx_by_age")
+*Plotting histogram for depression
+twoway (hist dep_adult, start(0) width(1) color(red%50)) ///
+	(hist dep_teen, start(0) width(1) color(blue%50)) ///
+	(kdensity dep_adult, lcolor(red)) ///
+	(kdensity dep_teen, lcolor(blue)), ///
+	legend(label(1 "Adults (>25)") label(2 "Adolescents") ////
+	label (3 "Adult density") label(4 "Adolescent density")) ///
+	xtitle("HADS-Depression score") ytitle("Frequency") name("Dep_by_age")
+*Plotting histogram for total score
+gen hads_adult = hads_total if Yes_adult == 1 
+gen hads_teen = hads_total if Yes_adult == 0
+twoway (hist hads_adult, start(0) width(1) color(red%50)) ///
+	(hist hads_teen, start(0) width(1) color(blue%50)) ///
+	(kdensity hads_adult, lcolor(red)) ///
+	(kdensity hads_teen, lcolor(blue)), ///
+	legend(label(1 "Adults (>25)") label(2 "Adolescents") ////
+	label (3 "Adult density") label(4 "Adolescent density")) ///
+	xtitle("HADS-Total score") ytitle("Frequency") name("HadsTotal_by_age")
+
+
+*Figure 5: Correlation matrix
 *Using heatplot tool by https://github.com/benjann/heatplot
 *Installing required packages for heatplot tool 
 ssc install heatplot, replace
@@ -298,7 +351,7 @@ ssc install gtools, replace
 spearman hads_dep_score Age ONSET cigarettes BMI  
 matrix C = r(Rho)
 heatplot C, values(format(%9.3f)) color(hcl diverging, intensity(.8)) ///
-	legend(off) aspectratio(1) lower
+	legend(off) aspectratio(1) lower nodiagonal
 *Generating anx heatplot 
 spearman hads_anx_score Age ONSET cigarettes BMI  
 matrix C = r(Rho)
@@ -312,8 +365,9 @@ spearman hads_dep_score FaceAffected BackAffected NeckAffected UpperArmsAffected
 spearman phq9_score MildSeverity ModerateSeverity NurseLeedsGradeFaceWhole NurseBackLeedsGrade NurseLeedsGradeChestWhole CombinedAcneScore
 *Correlation matrix of scarring with psychosocial impacts
 spearman phq9_score Scars FaceScar ScarringSeverityFace FamilyScar ScarringSeverityFace */
+drop FaceAffected BackAffected ChestAffected NeckAffected UpperArmsAffected MildSeverity ModerateSeverity NurseLeedsGradeFaceWhole NurseBackLeedsGrade NurseLeedsGradeChestWhole CombinedAcneScore Scars FaceScar ScarringSeverityFace FamilyScar ScarringSeverityFace FamilyDepression
+sum
 
-*Table 2: Linear regression 
 *Linear regression before imputation 
 reg hads_dep_score ONSET, beta
 reg hads_dep_score Yes_adult, beta
@@ -329,6 +383,8 @@ robvar hads_anx_score, by(Type_adultAcne)
 oneway hads_anx_score Type_adultAcne 
 oneway hads_dep_score Type_adultAcne /*did not show significant difference between onset groups for any psychosocial impact measures*/
 
+*__________________________________________________________________________________________________________________
+
 **Multiple imputation
 *Set imputation to wide format
 mi set wide
@@ -339,40 +395,44 @@ set seed 2024
 mi register imputed Age Sex smoke cigarettes Alcohol ONSET Duration pt_location pt_urban_loc BMI Yes_adult Socioeconomic_status Type_adultAcne hads_dep_score hads_anx_score 
 
 *Multiple imputation according to type of data (chained) 
-mi impute chained (regress) Age cigarettes ONSET Duration hads_dep_score hads_anx_score BMI (logit, augment) Sex smoke Alcohol Socioeconomic_status, add(10) orderasis nomonotone force noisily augment 
+mi impute chained (regress) Age cigarettes ONSET Duration hads_dep_score hads_anx_score  BMI (logit, augment) Sex smoke Alcohol Socioeconomic_status, add(10) orderasis nomonotone force noisily augment 
 save "Z:\imputed_acne.dta", replace
 mi describe 
 
-*Loading test imputation dataset (with only main variables)
+*Loading imputation dataset (with only main variables)
 clear all 
 use "Z:\imputed_acne.dta"
+
+*__________________________________________________________________________________________________________________
+
+*Install mibeta to calculate standardised coefficients for multiple imputed data analysed by linear regression (http://www.stata.com/users/ymarchenko)
+net install mibeta.pkg, replace
 
 **Univariable regression analysis
 *Linear regression model (outcome predictor) (Age as continuous variable)
 mi estimate: regress hads_anx_score ONSET, beta
+mibeta hads_anx_score ONSET
 mi estimate: regress hads_dep_score ONSET, beta
-*Getting confidence intervals 
-mi estimate: regress hads_anx_score ONSET
-mi estimate: regress hads_dep_score ONSET
+mibeta hads_dep_score ONSET
 
 *Linear regression model (Age as binary >=25)
 gen age_adult = (Age > 25)
 sum
 tab age_adult
 mi estimate: regress hads_anx_score age_adult, beta
+mibeta hads_anx_score age_adult 
 mi estimate: regress hads_dep_score age_adult, beta
-*Getting confidence intervals 
-mi estimate: regress hads_anx_score age_adult
-mi estimate: regress hads_dep_score age_adult
+mibeta hads_dep_score age_adult 
 
 *Calculating effect size of imputed data by Tiffin, P. A. (2023, Feb). miesize: a Stata .ado package for estimating effect sizes from multiply imputed data. http://repec.org/docs/ssc.php
 ssc install miesize, replace
 miesize hads_anx_score, by (age_adult) glass
 miesize hads_dep_score, by (age_adult) glass
 
+*__________________________________________________________________________________________________________________
+
 **Multivariable regression analysis 
-mi estimate: reg hads_anx_score Yes_adult Sex smoke cigarettes Alcohol pt_location pt_urban_loc BMI Socioeconomic_status
-mi estimate: reg hads_dep_score Yes_adult Sex smoke cigarettes Alcohol pt_location pt_urban_loc BMI Socioeconomic_status
-
-
-
+mi estimate: reg hads_anx_score age_adult Sex smoke cigarettes Alcohol BMI Socioeconomic_status, beta
+mibeta hads_anx_score age_adult Sex smoke cigarettes Alcohol BMI Socioeconomic_status, beta
+mi estimate: reg hads_dep_score age_adult Sex smoke cigarettes Alcohol BMI Socioeconomic_status, beta 
+mibeta hads_dep_score age_adult Sex smoke cigarettes Alcohol BMI Socioeconomic_status, beta
