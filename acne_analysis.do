@@ -36,6 +36,8 @@ misstable summarize
 ssc install mdesc, replace
 mdesc
 sum
+tab ONSET
+tab Age
 
 *Inspecting missingness per row 
 egen miss_count = rowmiss(*)
@@ -410,18 +412,18 @@ net install mibeta.pkg, replace
 
 **Univariable regression analysis
 *Linear regression model (outcome predictor) (Age as continuous variable)
-mi estimate: regress hads_anx_score ONSET, beta
+mi estimate: regress hads_anx_score ONSET
 mibeta hads_anx_score ONSET
-mi estimate: regress hads_dep_score ONSET, beta
+mi estimate: regress hads_dep_score ONSET
 mibeta hads_dep_score ONSET
 
 *Linear regression model (Age as binary >=25)
 gen age_adult = (Age > 25)
 sum
 tab age_adult
-mi estimate: regress hads_anx_score age_adult, beta
+mi estimate: regress hads_anx_score age_adult
 mibeta hads_anx_score age_adult 
-mi estimate: regress hads_dep_score age_adult, beta
+mi estimate: regress hads_dep_score age_adult
 mibeta hads_dep_score age_adult 
 
 *Calculating effect size of imputed data by Tiffin, P. A. (2023, Feb). miesize: a Stata .ado package for estimating effect sizes from multiply imputed data. http://repec.org/docs/ssc.php
@@ -431,8 +433,74 @@ miesize hads_dep_score, by (age_adult) glass
 
 *__________________________________________________________________________________________________________________
 
+*Selecting variables for multivariable analysis
+lasso linear hads_anx_score age_adult Sex smoke cigarettes Alcohol BMI Socioeconomic_status, selection(adaptive) rseed(2024) /*adaptive lasso used for tuning parameters*/
+estimates store adaptive /*storing estimates*/
+lassocoef /*displaying coefficents after lasso estimation*/
+lassogof /*investigating goodness of fit for prediction*/
+/*
+. lassocoef
+------------------------
+             | adaptive 
+-------------+----------
+         Sex |     x    
+       _cons |     x    
+------------------------
+Legend:
+  b - base level
+  e - empty cell
+  o - omitted
+  x - estimated
+
+. lassogof
+Penalized coefficients
+------------------------------------
+         MSE    R-squared        Obs
+------------------------------------
+    25.89948      -0.1248        944
+------------------------------------
+
+
+Only sex is seen as significant predictor for anxiety - not suitable for multivariable linear regression 
+*/
+
+lasso linear hads_dep_score age_adult Sex smoke cigarettes Alcohol BMI Socioeconomic_status, selection(adaptive) rseed(2024)
+estimates store adaptive 
+lassoknots
+lassocoef
+lassogof
+
+/*
+. lassocoef
+--------------------------------
+                     | adaptive 
+---------------------+----------
+           age_adult |     x    
+                 Sex |     x    
+Socioeconomic_status |     x    
+               _cons |     x    
+--------------------------------
+
+
+. lassogof
+Penalized coefficients
+------------------------------------
+         MSE    R-squared        Obs
+------------------------------------
+    17.62369      -0.2235        813
+------------------------------------
+
+Age, sex and socioeconomic status are seen as significant predictors for depression - can be analysed through multivariable linear regression
+*/
+
 **Multivariable regression analysis 
+mi estimate: reg hads_dep_score age_adult Sex Socioeconomic_status, beta 
+mibeta hads_dep_score age_adult Sex Socioeconomic_status, beta
+
 mi estimate: reg hads_anx_score age_adult Sex smoke cigarettes Alcohol BMI Socioeconomic_status, beta
 mibeta hads_anx_score age_adult Sex smoke cigarettes Alcohol BMI Socioeconomic_status, beta
-mi estimate: reg hads_dep_score age_adult Sex smoke cigarettes Alcohol BMI Socioeconomic_status, beta 
+
+mi estimate: reg hads_dep_score age_adult Sex smoke cigarettes Alcohol BMI Socioeconomic_status, beta
 mibeta hads_dep_score age_adult Sex smoke cigarettes Alcohol BMI Socioeconomic_status, beta
+
+*__________________________________________________________________________________________________________________
